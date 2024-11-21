@@ -12,7 +12,7 @@ export const ButtonManagement: React.FC = () => {
     shape: 'rounded',
     tooltip: '',
     link: {
-      type: 'external',
+      type: 'onedrive',
       url: ''
     },
     profileIds: []
@@ -40,6 +40,14 @@ export const ButtonManagement: React.FC = () => {
       alert('Veuillez sélectionner au moins un profil');
       return;
     }
+
+    // Validation du lien OneDrive
+    if (newButton.link.type === 'onedrive' && 
+        !newButton.link.url.includes('1drv.ms') && 
+        !newButton.link.url.includes('onedrive.live.com')) {
+      alert('Veuillez entrer une URL OneDrive valide');
+      return;
+    }
     
     await addButton(newButton);
     
@@ -49,7 +57,7 @@ export const ButtonManagement: React.FC = () => {
       shape: 'rounded',
       tooltip: '',
       link: {
-        type: 'external',
+        type: 'onedrive',
         url: ''
       },
       profileIds: []
@@ -107,15 +115,33 @@ export const ButtonManagement: React.FC = () => {
             <option value="circle">Cercle</option>
           </select>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Type de lien</label>
+          <select
+            value={newButton.link.type}
+            onChange={(e) => setNewButton({
+              ...newButton,
+              link: { ...newButton.link, type: e.target.value as 'onedrive' | 'external' }
+            })}
+            className="mt-1 block w-full"
+          >
+            <option value="onedrive">OneDrive</option>
+            <option value="external">Lien externe</option>
+          </select>
+        </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">URL *</label>
+          <label className="block text-sm font-medium text-gray-700">
+            {newButton.link.type === 'onedrive' ? 'URL OneDrive *' : 'URL externe *'}
+          </label>
           <input
             type="url"
             required
             value={newButton.link.url}
             onChange={(e) => setNewButton({...newButton, link: { ...newButton.link, url: e.target.value }})}
             className="mt-1 block w-full"
+            placeholder={newButton.link.type === 'onedrive' ? 'https://1drv.ms/... ou https://onedrive.live.com/...' : 'https://...'}
           />
         </div>
         
@@ -164,6 +190,9 @@ export const ButtonManagement: React.FC = () => {
             <div>
               <span className="font-medium">{button.title}</span>
               <div className="text-sm text-gray-500 mt-1">
+                Type : {button.link.type === 'onedrive' ? 'OneDrive' : 'Lien externe'}
+              </div>
+              <div className="text-sm text-gray-500">
                 Profils : {profiles
                   .filter(p => button.profileIds?.includes(p.id))
                   .map(p => p.name)
