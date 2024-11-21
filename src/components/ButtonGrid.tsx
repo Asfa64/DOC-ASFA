@@ -10,7 +10,7 @@ const ButtonGrid: React.FC = () => {
   const navigate = useNavigate();
 
   const handleButtonClick = (url: string, type: 'onedrive' | 'external') => {
-    if (type === 'onedrive') {
+    if (type === 'onedrive' || url.includes('sharepoint.com')) {
       navigate(`/viewer?url=${encodeURIComponent(url)}`);
     } else {
       window.open(url, '_blank');
