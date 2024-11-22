@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { CustomButton as CustomButtonType } from '../types';
+import { ExternalLink } from 'lucide-react';
 
 interface Props extends CustomButtonType {
   onClick: () => void;
@@ -11,6 +12,7 @@ export const CustomButton: React.FC<Props> = memo(({
   shape,
   tooltip,
   onClick,
+  link
 }) => {
   const shapeClasses = {
     square: 'rounded-none',
@@ -18,20 +20,28 @@ export const CustomButton: React.FC<Props> = memo(({
     circle: 'rounded-full',
   };
 
+  const isSharePoint = link.url.includes('sharepoint.com');
+
   return (
     <button
       onClick={onClick}
       className={`
         ${shapeClasses[shape]}
         p-6 min-w-[200px] min-h-[200px]
-        flex flex-col items-center justify-center
+        flex flex-col items-center justify-center gap-3
         transition-all duration-300
         hover:scale-105 hover:shadow-lg
         group relative
       `}
       style={{ backgroundColor: color }}
     >
-      <span className="text-white text-lg font-semibold">{title}</span>
+      <span className="text-white text-lg font-semibold text-center">{title}</span>
+      {isSharePoint ? (
+        <span className="text-white/80 text-sm flex items-center gap-1">
+          Ouvrir dans l'application
+          <ExternalLink className="h-4 w-4" />
+        </span>
+      ) : null}
       
       {tooltip && (
         <div className="

@@ -1,17 +1,11 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Settings } from 'lucide-react';
 import { ContactAdmin } from './ContactAdmin';
 import { useUserStore } from '../store/userStore';
 
 export const Layout: React.FC = () => {
   const currentUser = useUserStore((state) => state.currentUser);
-  const location = useLocation();
-  const isViewer = location.pathname === '/viewer';
-
-  if (isViewer) {
-    return <Outlet />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

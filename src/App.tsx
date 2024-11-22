@@ -4,7 +4,6 @@ import { Home } from './pages/Home';
 import { Admin } from './pages/Admin';
 import { Login } from './pages/Login';
 import { Layout } from './components/Layout';
-import { OneDriveViewer } from './components/OneDriveViewer';
 import { useUserStore } from './store/userStore';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,11 +60,6 @@ function App() {
           <AdminRoute>
             <Admin />
           </AdminRoute>
-        } />
-        <Route path="viewer" element={
-          <ProtectedRoute>
-            <OneDriveViewer url={new URLSearchParams(window.location.search).get('url') || ''} />
-          </ProtectedRoute>
         } />
       </Route>
     </Routes>
