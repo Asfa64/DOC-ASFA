@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useButtonStore } from '../store/buttonStore';
 import { useProfileStore } from '../store/profileStore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 import { CustomButton } from '../types';
+import { FileUp } from 'lucide-react';
 
 export const ButtonManagement: React.FC = () => {
   const { buttons, fetchButtons, addButton, removeButton, loading } = useButtonStore();
@@ -13,15 +16,37 @@ export const ButtonManagement: React.FC = () => {
     tooltip: '',
     link: {
       type: 'external',
-      url: ''
+      url: '',
+      filename: ''
     },
     profileIds: []
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   useEffect(() => {
     fetchButtons();
     fetchProfiles();
   }, [fetchButtons, fetchProfiles]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type === 'application/pdf') {
+        setSelectedFile(file);
+        setNewButton(prev => ({
+          ...prev,
+          link: {
+            type: 'pdf',
+            url: '',
+            filename: file.name
+          }
+        }));
+      } else {
+        alert('Veuillez sélectionner un fichier PDF');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +56,8 @@ export const ButtonManagement: React.FC = () => {
       return;
     }
 
-    if (!newButton.title || !newButton.link.url) {
-      alert('Veuillez remplir tous les champs obligatoires');
+    if (!newButton.title) {
+      alert('Veuillez remplir le titre');
       return;
     }
 
@@ -40,20 +65,47 @@ export const ButtonManagement: React.FC = () => {
       alert('Veuillez sélectionner au moins un profil');
       return;
     }
-    
-    await addButton(newButton);
-    
-    setNewButton({
-      title: '',
-      color: '#67BEE8',
-      shape: 'rounded',
-      tooltip: '',
-      link: {
-        type: 'external',
-        url: ''
-      },
-      profileIds: []
-    });
+
+    if (newButton.link.type === 'external' && !newButton.link.url) {
+      alert('Veuillez saisir une URL');
+      return;
+    }
+
+    if (newButton.link.type === 'pdf' && !selectedFile) {
+      alert('Veuillez sélectionner un fichier PDF');
+      return;
+    }
+
+    try {
+      let finalButton = { ...newButton };
+
+      if (selectedFile && newButton.link.type === 'pdf') {
+        const storageRef = ref(storage, `pdfs/${Date.now()}_${selectedFile.name}`);
+        await uploadBytes(storageRef, selectedFile);
+        const downloadUrl = await getDownloadURL(storageRef);
+        finalButton.link.url = downloadUrl;
+      }
+
+      await addButton(finalButton);
+      
+      setNewButton({
+        title: '',
+        color: '#67BEE8',
+        shape: 'rounded',
+        tooltip: '',
+        link: {
+          type: 'external',
+          url: '',
+          filename: ''
+        },
+        profileIds: []
+      });
+      setSelectedFile(null);
+      setUploadProgress(0);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du bouton:', error);
+      alert('Une erreur est survenue lors de l\'ajout du bouton');
+    }
   };
 
   const handleProfileChange = (profileId: string) => {
@@ -82,6 +134,63 @@ export const ButtonManagement: React.FC = () => {
         </div>
         
         <div>
+          <label className="block text-sm font-medium text-gray-700">Type de lien</label>
+          <select
+            value={newButton.link.type}
+            onChange={(e) => setNewButton({
+              ...newButton,
+              link: { 
+                type: e.target.value as 'pdf' | 'external',
+                url: '',
+                filename: ''
+              }
+            })}
+            className="mt-1 block w-full"
+          >
+            <option value="external">Lien externe</option>
+            <option value="pdf">Fichier PDF</option>
+          </select>
+        </div>
+
+        {newButton.link.type === 'external' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">URL *</label>
+            <input
+              type="url"
+              required
+              value={newButton.link.url}
+              onChange={(e) => setNewButton({
+                ...newButton,
+                link: { ...newButton.link, url: e.target.value }
+              })}
+              className="mt-1 block w-full"
+              placeholder="https://"
+            />
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Fichier PDF *</label>
+            <div className="mt-1 flex items-center gap-4">
+              <label className="flex items-center gap-2 px-4 py-2 bg-accent1 text-white rounded-md hover:bg-opacity-90 cursor-pointer">
+                <FileUp className="h-5 w-5" />
+                <span>Sélectionner un PDF</span>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+              {selectedFile && (
+                <span className="text-sm text-gray-600">
+                  {selectedFile.name}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <div>
           <label className="block text-sm font-medium text-gray-700">Couleur</label>
           <select
             value={newButton.color}
@@ -106,17 +215,6 @@ export const ButtonManagement: React.FC = () => {
             <option value="rounded">Arrondi</option>
             <option value="circle">Cercle</option>
           </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700">URL *</label>
-          <input
-            type="url"
-            required
-            value={newButton.link.url}
-            onChange={(e) => setNewButton({...newButton, link: { ...newButton.link, url: e.target.value }})}
-            className="mt-1 block w-full"
-          />
         </div>
         
         <div>
@@ -151,7 +249,7 @@ export const ButtonManagement: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-accent1 text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
+          className="w-full bg-accent1 text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors disabled:opacity-50"
         >
           {loading ? 'Ajout...' : 'Ajouter un Bouton'}
         </button>
@@ -164,6 +262,9 @@ export const ButtonManagement: React.FC = () => {
             <div>
               <span className="font-medium">{button.title}</span>
               <div className="text-sm text-gray-500 mt-1">
+                Type: {button.link.type === 'pdf' ? 'PDF' : 'Lien externe'}
+              </div>
+              <div className="text-sm text-gray-500">
                 Profils : {profiles
                   .filter(p => button.profileIds?.includes(p.id))
                   .map(p => p.name)

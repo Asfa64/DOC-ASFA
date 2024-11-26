@@ -68,28 +68,32 @@ export const useButtonStore = create<ButtonState>()(
       },
 
       addButton: async (buttonData) => {
-        if (get().loading) return;
         set({ loading: true, error: null });
-        
         try {
-          const docRef = await addDoc(collection(db, 'buttons'), buttonData);
-          const newButton = { id: docRef.id, ...buttonData };
+          // Ensure profileIds is initialized as an array
+          const button = {
+            ...buttonData,
+            profileIds: buttonData.profileIds || []
+          };
+
+          const docRef = await addDoc(collection(db, 'buttons'), button);
+          const newButton = { id: docRef.id, ...button };
+          
           set(state => ({ 
             buttons: [...state.buttons, newButton],
             lastFetch: Date.now()
           }));
         } catch (error) {
-          set({ error: 'Échec de l\'ajout du bouton' });
           console.error('Erreur lors de l\'ajout du bouton:', error);
+          set({ error: 'Échec de l\'ajout du bouton' });
+          throw error; // Propagate error to component
         } finally {
           set({ loading: false });
         }
       },
 
       updateButton: async (id, buttonData) => {
-        if (get().loading) return;
         set({ loading: true, error: null });
-        
         try {
           const docRef = doc(db, 'buttons', id);
           await updateDoc(docRef, buttonData);
@@ -109,9 +113,7 @@ export const useButtonStore = create<ButtonState>()(
       },
 
       removeButton: async (id) => {
-        if (get().loading) return;
         set({ loading: true, error: null });
-        
         try {
           await deleteDoc(doc(db, 'buttons', id));
           set(state => ({

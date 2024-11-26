@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { CustomButton as CustomButtonType } from '../types';
-import { ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink } from 'lucide-react';
 
 interface Props extends CustomButtonType {
   onClick: () => void;
@@ -20,8 +20,6 @@ export const CustomButton: React.FC<Props> = memo(({
     circle: 'rounded-full',
   };
 
-  const isSharePoint = link.url.includes('sharepoint.com');
-
   return (
     <button
       onClick={onClick}
@@ -36,12 +34,19 @@ export const CustomButton: React.FC<Props> = memo(({
       style={{ backgroundColor: color }}
     >
       <span className="text-white text-lg font-semibold text-center">{title}</span>
-      {isSharePoint ? (
-        <span className="text-white/80 text-sm flex items-center gap-1">
-          Ouvrir dans l'application
-          <ExternalLink className="h-4 w-4" />
-        </span>
-      ) : null}
+      <span className="text-white/80 text-sm flex items-center gap-1">
+        {link.type === 'pdf' ? (
+          <>
+            <FileText className="h-4 w-4" />
+            Voir le PDF
+          </>
+        ) : (
+          <>
+            <ExternalLink className="h-4 w-4" />
+            Ouvrir le lien
+          </>
+        )}
+      </span>
       
       {tooltip && (
         <div className="

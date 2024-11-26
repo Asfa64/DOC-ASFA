@@ -2,23 +2,24 @@ import React, { useState } from 'react';
 import { useButtonStore } from '../store/buttonStore';
 import { useUserStore } from '../store/userStore';
 import { CustomButton } from './CustomButton';
-import { ArrowLeft } from 'lucide-react';
+import { PDFViewer } from './PDFViewer';
+import { CustomButton as CustomButtonType } from '../types';
 
 const ButtonGrid: React.FC = () => {
   const buttons = useButtonStore((state) => state.buttons);
   const currentUser = useUserStore((state) => state.currentUser);
-  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const [selectedButton, setSelectedButton] = useState<CustomButtonType | null>(null);
 
-  const handleButtonClick = (url: string) => {
-    if (url.includes('sharepoint.com')) {
-      setActiveUrl(url);
+  const handleButtonClick = (button: CustomButtonType) => {
+    if (button.link.type === 'pdf') {
+      setSelectedButton(button);
     } else {
-      window.open(url, '_blank');
+      window.open(button.link.url, '_blank');
     }
   };
 
-  const handleReturn = () => {
-    setActiveUrl(null);
+  const handleClosePDF = () => {
+    setSelectedButton(null);
   };
 
   // Filtrer les boutons en fonction du profil de l'utilisateur
@@ -26,27 +27,13 @@ const ButtonGrid: React.FC = () => {
     currentUser?.profileId && button.profileIds.includes(currentUser.profileId)
   );
 
-  if (activeUrl) {
+  if (selectedButton) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <button
-            onClick={handleReturn}
-            className="mb-4 flex items-center gap-2 text-accent1 hover:text-accent2 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Retour au tableau de bord</span>
-          </button>
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <iframe
-              src={activeUrl}
-              className="w-full h-[calc(100vh-120px)]"
-              frameBorder="0"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      </div>
+      <PDFViewer
+        url={selectedButton.link.url}
+        title={selectedButton.title}
+        onClose={handleClosePDF}
+      />
     );
   }
 
@@ -56,7 +43,7 @@ const ButtonGrid: React.FC = () => {
         <CustomButton
           key={button.id}
           {...button}
-          onClick={() => handleButtonClick(button.link.url)}
+          onClick={() => handleButtonClick(button)}
         />
       ))}
     </div>

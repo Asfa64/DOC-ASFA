@@ -6,10 +6,11 @@ export interface CustomButton {
   shape: 'square' | 'rounded' | 'circle';
   tooltip?: string;
   link: {
-    type: 'onedrive' | 'external';
+    type: 'pdf' | 'external';
     url: string;
+    filename?: string;
   };
-  profileIds: string[]; // IDs des profils auxquels ce bouton est attribué
+  profileIds: string[];
 }
 
 export interface User {
@@ -17,7 +18,7 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'user';
-  profileId?: string; // ID du profil attribué à l'utilisateur
+  profileId?: string;
 }
 
 export interface Profile {
@@ -26,13 +27,11 @@ export interface Profile {
   description?: string;
 }
 
-export interface OneDriveItem {
+export interface PDFFile {
   id: string;
   name: string;
-  type: 'file' | 'folder';
-  webUrl: string;
-  parentReference?: {
-    driveId: string;
-    id: string;
-  };
+  url: string;
+  path: string;
+  uploadedAt: number;
+  size: number;
 }
