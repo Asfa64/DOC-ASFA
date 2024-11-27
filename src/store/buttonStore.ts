@@ -70,7 +70,6 @@ export const useButtonStore = create<ButtonState>()(
       addButton: async (buttonData) => {
         set({ loading: true, error: null });
         try {
-          // Ensure profileIds is initialized as an array
           const button = {
             ...buttonData,
             profileIds: buttonData.profileIds || []
@@ -86,7 +85,7 @@ export const useButtonStore = create<ButtonState>()(
         } catch (error) {
           console.error('Erreur lors de l\'ajout du bouton:', error);
           set({ error: 'Échec de l\'ajout du bouton' });
-          throw error; // Propagate error to component
+          throw error;
         } finally {
           set({ loading: false });
         }
