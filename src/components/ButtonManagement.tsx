@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useButtonStore } from '../store/buttonStore';
 import { useProfileStore } from '../store/profileStore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../lib/firebase';
 import { FileUp } from 'lucide-react';
 import { CustomButton } from '../types';
+import { uploadPDF } from '../utils/fileUtils';
 
 export const ButtonManagement: React.FC = () => {
   const { buttons, fetchButtons, addButton, removeButton, loading } = useButtonStore();
@@ -12,6 +11,7 @@ export const ButtonManagement: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [newButton, setNewButton] = useState<Omit<CustomButton, 'id'>>({
     title: '',
     color: '#67BEE8',
@@ -45,10 +45,12 @@ export const ButtonManagement: React.FC = () => {
     });
     setSelectedFile(null);
     setFormError(null);
+    setUploadProgress(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormError(null);
+    setUploadProgress(null);
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.type === 'application/pdf') {
@@ -103,6 +105,7 @@ export const ButtonManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setUploadProgress(null);
 
     if (!validateForm()) {
       return;
@@ -114,17 +117,17 @@ export const ButtonManagement: React.FC = () => {
       let finalButton = { ...newButton };
 
       if (selectedFile && newButton.link.type === 'pdf') {
-        const storageRef = ref(storage, `pdfs/${Date.now()}_${selectedFile.name}`);
-        await uploadBytes(storageRef, selectedFile);
-        const downloadUrl = await getDownloadURL(storageRef);
+        setUploadProgress('Upload du fichier en cours...');
+        const downloadUrl = await uploadPDF(selectedFile);
         finalButton.link.url = downloadUrl;
+        setUploadProgress('Upload terminé avec succès');
       }
 
       await addButton(finalButton);
       resetForm();
     } catch (error) {
       console.error('Erreur lors de l\'ajout du bouton:', error);
-      setFormError('Une erreur est survenue lors de l\'ajout du bouton');
+      setFormError(error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'ajout du bouton');
     } finally {
       setIsSubmitting(false);
     }
@@ -138,6 +141,12 @@ export const ButtonManagement: React.FC = () => {
         {formError && (
           <div className="bg-red-50 text-red-600 p-3 rounded-md">
             {formError}
+          </div>
+        )}
+
+        {uploadProgress && (
+          <div className="bg-blue-50 text-blue-600 p-3 rounded-md">
+            {uploadProgress}
           </div>
         )}
 
