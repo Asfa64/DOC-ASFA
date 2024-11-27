@@ -22,7 +22,7 @@ const ButtonGrid: React.FC = () => {
     setSelectedButton(null);
   };
 
-  // Filtrer les boutons en fonction du profil de l'utilisateur
+  // Filter buttons based on user profile
   const filteredButtons = buttons.filter(button => 
     currentUser?.profileId && button.profileIds.includes(currentUser.profileId)
   );

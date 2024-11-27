@@ -31,7 +31,12 @@ export interface PDFFile {
   id: string;
   name: string;
   url: string;
-  path: string;
   uploadedAt: number;
   size: number;
+}
+
+export interface UploadProgress {
+  status: 'idle' | 'uploading' | 'success' | 'error';
+  progress: number;
+  message?: string;
 }

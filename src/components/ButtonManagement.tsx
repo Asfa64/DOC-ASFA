@@ -51,8 +51,16 @@ export const ButtonManagement: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormError(null);
     setUploadProgress(null);
+    
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      console.log('File selected:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
+      
       if (file.type === 'application/pdf') {
         setSelectedFile(file);
         setNewButton(prev => ({
@@ -64,7 +72,9 @@ export const ButtonManagement: React.FC = () => {
           }
         }));
       } else {
-        setFormError('Veuillez sélectionner un fichier PDF');
+        const error = `Type de fichier invalide: ${file.type}. Veuillez sélectionner un PDF.`;
+        console.error(error);
+        setFormError(error);
       }
     }
   };
@@ -112,6 +122,11 @@ export const ButtonManagement: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    console.log('Starting form submission:', {
+      buttonTitle: newButton.title,
+      linkType: newButton.link.type,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       let finalButton = { ...newButton };
@@ -121,12 +136,31 @@ export const ButtonManagement: React.FC = () => {
         const downloadUrl = await uploadPDF(selectedFile);
         finalButton.link.url = downloadUrl;
         setUploadProgress('Upload terminé avec succès');
+        
+        console.log('PDF upload completed:', {
+          filename: selectedFile.name,
+          url: downloadUrl,
+          timestamp: new Date().toISOString()
+        });
       }
 
       await addButton(finalButton);
+      console.log('Button added successfully:', {
+        buttonTitle: finalButton.title,
+        timestamp: new Date().toISOString()
+      });
+      
       resetForm();
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du bouton:', error);
+      console.error('Form submission failed:', {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        timestamp: new Date().toISOString()
+      });
+      
       setFormError(error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'ajout du bouton');
     } finally {
       setIsSubmitting(false);

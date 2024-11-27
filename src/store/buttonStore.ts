@@ -1,8 +1,7 @@
 import { create } from 'zustand';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, limit, getDocsFromCache } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { CustomButton } from '../types';
 import { persist } from 'zustand/middleware';
+import { CustomButton } from '../types';
+import { deletePDF } from '../utils/fileUtils';
 
 interface ButtonState {
   buttons: CustomButton[];
@@ -15,8 +14,6 @@ interface ButtonState {
   removeButton: (id: string) => Promise<void>;
 }
 
-const CACHE_TIME = 30 * 60 * 1000; // 30 minutes cache
-
 export const useButtonStore = create<ButtonState>()(
   persist(
     (set, get) => ({
@@ -26,65 +23,26 @@ export const useButtonStore = create<ButtonState>()(
       lastFetch: 0,
 
       fetchButtons: async () => {
-        const now = Date.now();
-        const cachedButtons = get().buttons;
-        
-        if (now - get().lastFetch < CACHE_TIME && cachedButtons.length > 0) {
-          return;
-        }
-
-        set({ loading: true, error: null });
-        
-        try {
-          const buttonsQuery = query(collection(db, 'buttons'), limit(9));
-          
-          try {
-            const cachedDocs = await getDocsFromCache(buttonsQuery);
-            if (!cachedDocs.empty) {
-              const buttons = cachedDocs.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              })) as CustomButton[];
-              set({ buttons, lastFetch: now, loading: false });
-              return;
-            }
-          } catch (error) {
-            console.log('Cache manqué, chargement depuis le serveur...');
-          }
-
-          const querySnapshot = await getDocs(buttonsQuery);
-          const buttons = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as CustomButton[];
-          
-          set({ buttons, lastFetch: now });
-        } catch (error) {
-          set({ error: 'Échec du chargement des boutons' });
-          console.error('Erreur lors du chargement des boutons:', error);
-        } finally {
-          set({ loading: false });
-        }
+        // Since we're using local storage, just return the current state
+        return Promise.resolve();
       },
 
       addButton: async (buttonData) => {
         set({ loading: true, error: null });
         try {
-          const button = {
+          const newButton = {
+            id: Date.now().toString(),
             ...buttonData,
             profileIds: buttonData.profileIds || []
           };
-
-          const docRef = await addDoc(collection(db, 'buttons'), button);
-          const newButton = { id: docRef.id, ...button };
           
           set(state => ({ 
             buttons: [...state.buttons, newButton],
             lastFetch: Date.now()
           }));
         } catch (error) {
-          console.error('Erreur lors de l\'ajout du bouton:', error);
-          set({ error: 'Échec de l\'ajout du bouton' });
+          console.error('Error adding button:', error);
+          set({ error: 'Failed to add button' });
           throw error;
         } finally {
           set({ loading: false });
@@ -94,9 +52,6 @@ export const useButtonStore = create<ButtonState>()(
       updateButton: async (id, buttonData) => {
         set({ loading: true, error: null });
         try {
-          const docRef = doc(db, 'buttons', id);
-          await updateDoc(docRef, buttonData);
-          
           set(state => ({
             buttons: state.buttons.map(button =>
               button.id === id ? { ...button, ...buttonData } : button
@@ -104,8 +59,8 @@ export const useButtonStore = create<ButtonState>()(
             lastFetch: Date.now()
           }));
         } catch (error) {
-          set({ error: 'Échec de la mise à jour du bouton' });
-          console.error('Erreur lors de la mise à jour du bouton:', error);
+          set({ error: 'Failed to update button' });
+          console.error('Error updating button:', error);
         } finally {
           set({ loading: false });
         }
@@ -114,14 +69,18 @@ export const useButtonStore = create<ButtonState>()(
       removeButton: async (id) => {
         set({ loading: true, error: null });
         try {
-          await deleteDoc(doc(db, 'buttons', id));
+          const button = get().buttons.find(b => b.id === id);
+          if (button?.link.type === 'pdf') {
+            await deletePDF(button.link.filename || '');
+          }
+          
           set(state => ({
             buttons: state.buttons.filter(button => button.id !== id),
             lastFetch: Date.now()
           }));
         } catch (error) {
-          set({ error: 'Échec de la suppression du bouton' });
-          console.error('Erreur lors de la suppression du bouton:', error);
+          set({ error: 'Failed to remove button' });
+          console.error('Error removing button:', error);
         } finally {
           set({ loading: false });
         }
